@@ -6,15 +6,15 @@ import (
 	"spacetrouble.com/booking/internal/domain"
 )
 
-type BookingRepositorySQL struct {
+type BookingRepository struct {
 	DB *sql.DB
 }
 
-func NewBookingRepositorySQL(db *sql.DB) *BookingRepositorySQL {
-	return &BookingRepositorySQL{DB: db}
+func NewBookingRepository(db *sql.DB) *BookingRepository {
+	return &BookingRepository{DB: db}
 }
 
-func (repo *BookingRepositorySQL) FindAll() ([]*domain.Booking, error) {
+func (repo *BookingRepository) FindAll() ([]*domain.Booking, error) {
 	query := `SELECT id, first_name, last_name, gender, birthday, launchpad_id, destination_id, launch_date FROM bookings`
 
 	rows, err := repo.DB.Query(query)
@@ -42,12 +42,12 @@ func (repo *BookingRepositorySQL) FindAll() ([]*domain.Booking, error) {
 	return bookings, nil
 }
 
-func (repo *BookingRepositorySQL) Create(booking *domain.Booking) error {
-    query := `INSERT INTO bookings (id, first_name, last_name, gender, birthday, launchpad_id, destination_id, launch_date)
+func (repo *BookingRepository) Create(booking *domain.Booking) error {
+	query := `INSERT INTO bookings (id, first_name, last_name, gender, birthday, launchpad_id, destination_id, launch_date)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-    _, err := repo.DB.Exec(query, booking.ID, booking.FirstName, booking.LastName, booking.Gender,
-        booking.Birthday, booking.LaunchpadID, booking.DestinationID, booking.LaunchDate)
+	_, err := repo.DB.Exec(query, booking.ID, booking.FirstName, booking.LastName, booking.Gender,
+		booking.Birthday, booking.LaunchpadID, booking.DestinationID, booking.LaunchDate)
 
-    return err
+	return err
 }
