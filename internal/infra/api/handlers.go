@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"spacetrouble.com/booking/internal/app"
@@ -60,8 +61,21 @@ func (h *BookingHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		booking.Gender = bookingReq.Gender
 	}
 
-	if err := h.Service.CreateBooking(booking); err != nil {
-		http.Error(w, "Failed to create booking", http.StatusInternalServerError)
+	err := h.Service.CreateBooking(booking)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, domain.ErrConflict) {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		if errors.Is(err, domain.ErrInvalidInput) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 

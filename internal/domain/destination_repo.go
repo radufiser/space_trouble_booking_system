@@ -1,5 +1,6 @@
 package domain
 
 type DestinationRepository interface {
-	FetchDestinations() ([]Destination, error)
+	FetchAllDestinations() ([]Destination, error)
+	GetByID(id string) (*Destination, error)
 }

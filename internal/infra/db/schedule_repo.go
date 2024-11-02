@@ -3,6 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
+	"spacetrouble.com/booking/internal/domain"
 )
 
 type ScheduleRepository struct {
@@ -13,30 +16,20 @@ func NewScheduleRepository(db *sql.DB) *ScheduleRepository {
 	return &ScheduleRepository{DB: db}
 }
 
-func (repo ScheduleRepository) SaveWeeklySchedule(schedule map[string][]string) error {
-	tx, err := repo.DB.Begin()
+func (repo ScheduleRepository) FetchSchedule(launchpadID string, dayOfWeek int, destinationID string) (*domain.WeeklySchedule, error) {
+	var schedule domain.WeeklySchedule
+	err := repo.DB.QueryRow(`
+        SELECT launchpad_id, day_of_week, destination_id, last_updated
+        FROM weekly_schedule
+        WHERE launchpad_id = $1 AND day_of_week = $2 AND destination_id = $3
+    `, launchpadID, dayOfWeek, destinationID).Scan(
+		&schedule.LaunchpadID, &schedule.DayOfWeek, &schedule.DestinationID, &schedule.LastUpdated)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare(`
-        INSERT INTO weekly_schedule (launchpad_id, day_of_week, destination_id, last_updated)
-        VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (launchpad_id, day_of_week) DO UPDATE
-        SET destination_id = EXCLUDED.destination_id, last_updated = EXCLUDED.last_updated
-    `)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
-	for launchpadID, days := range schedule {
-		for dayOfWeek, destinationID := range days {
-			if _, err := stmt.Exec(launchpadID, dayOfWeek, destinationID); err != nil {
-				return fmt.Errorf("failed to execute statement: %w", err)
-			}
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("launch from launchpad %s on day %d with destination %s %w", launchpadID, time.Weekday(dayOfWeek), destinationID, domain.ErrNotFound)
 		}
+		return nil, fmt.Errorf("%w: %s", domain.ErrInternal, err)
 	}
-	return tx.Commit()
+
+	return &schedule, nil
 }

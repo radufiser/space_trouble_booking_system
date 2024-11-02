@@ -1,5 +1,5 @@
 package domain
 
 type ScheduleRepository interface {
-	SaveWeeklySchedule(schedule map[string][]string) error
+	FetchSchedule(launchpadID string, dayOfWeek int, destinationID string) (*WeeklySchedule, error)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"spacetrouble.com/booking/config"
 	"spacetrouble.com/booking/internal/app"
@@ -20,30 +21,17 @@ func main() {
 	}
 
 	// Initialize HTTP clients
-	launchpadClient := httpclient.NewLaunchpadClient("https://api.spacexdata.com")
+	launchClient := httpclient.NewLaunchClient("https://api.spacexdata.com", 10*time.Second, 3*time.Hour)
 
 	// Setup repositories
 	bookingRepo := db.NewBookingRepository(database)
-	launchpadRepo := db.NewLaunchpadRepository(database)
-	destinationRepo := db.NewDestinationRepository(database)
 	scheduleRepo := db.NewScheduleRepository(database)
+	destinationRepo := db.NewDestinationRepository(database)
+	launchpadRepo := db.NewLaunchpadRepository(database)
 
 	// Initialize services and handlers
-	bookingService := app.NewBookingService(bookingRepo)
+	bookingService := app.NewBookingService(bookingRepo, scheduleRepo, destinationRepo, launchpadRepo, launchClient)
 	bookingHandler := api.NewBookingHandler(bookingService)
-
-	// Syncing
-	launchpadService := app.NewLaunchpadService(launchpadRepo, launchpadClient)
-	err = launchpadService.SyncActiveLaunchpads()
-	if err != nil {
-		log.Fatalf("Sync of active launchpads failed: %v", err)
-	}
-
-	scheduleService := app.NewScheduleService(destinationRepo, launchpadRepo, scheduleRepo)
-	err = scheduleService.GenerateWeeklySchedule()
-	if err != nil {
-		log.Fatalf("Sync of active launchpads failed: %v", err)
-	}
 
 	// Setup router and start the server
 	router := api.SetupRouter(bookingHandler)
