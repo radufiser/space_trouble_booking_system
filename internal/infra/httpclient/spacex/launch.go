@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"spacetrouble.com/booking/internal/domain"
 )
 
 const LaunchesEndpoint = "/v4/launches/upcoming"
@@ -19,7 +21,7 @@ type Launch struct {
 
 // cacheEntry represents a cached item with an expiration time.
 type cacheEntry struct {
-	data      []Launch
+	data      []domain.Launch
 	expiresAt time.Time
 }
 
@@ -31,6 +33,7 @@ type LaunchClient struct {
 	cacheTTL   time.Duration // Time-to-live for cache entries
 }
 
+// NewLaunchClient initializes a new LaunchClient
 func NewLaunchClient(baseURL string, httpTTL time.Duration, cacheTTL time.Duration) *LaunchClient {
 	return &LaunchClient{
 		HTTPClient: &http.Client{Timeout: httpTTL},
@@ -40,13 +43,13 @@ func NewLaunchClient(baseURL string, httpTTL time.Duration, cacheTTL time.Durati
 }
 
 // GetUpcomingLaunches fetches upcoming launches and extracts only the required fields
-func (c *LaunchClient) GetUpcomingLaunches() ([]Launch, error) {
+func (c *LaunchClient) GetUpcomingLaunches() ([]domain.Launch, error) {
 	// Check if the result is in the cache and not expired
 	if c.cache.data != nil && time.Now().Before(c.cache.expiresAt) {
 		return c.cache.data, nil
 	}
 
-	req, err := http.NewRequest("GET", c.BaseURL+LaunchesEndpoint, nil)
+	req, err := http.NewRequest(http.MethodGet, c.BaseURL+LaunchesEndpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -67,11 +70,25 @@ func (c *LaunchClient) GetUpcomingLaunches() ([]Launch, error) {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
+	domainLaunches := toDomainLaunches(launches)
 	// Store the result in the cache with an expiration time
 	c.cache = cacheEntry{
-		data:      launches,
+		data:      domainLaunches,
 		expiresAt: time.Now().Add(c.cacheTTL),
 	}
 
-	return launches, nil
+	return domainLaunches, nil
+}
+
+// toDomainLaunches converts a slice of Launch to a slice of domain.Launch
+func toDomainLaunches(originals []Launch) []domain.Launch {
+	domainLaunches := make([]domain.Launch, len(originals))
+	for i, orig := range originals {
+		domainLaunches[i] = domain.Launch{
+			LaunchpadId: orig.Launchpad,
+			Name:        orig.Name,
+			Date:        orig.DateUTC,
+		}
+	}
+	return domainLaunches
 }

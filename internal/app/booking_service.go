@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"spacetrouble.com/booking/internal/domain"
-	spacex "spacetrouble.com/booking/internal/infra/httpclient/spacex"
 )
 
 type BookingService struct {
@@ -15,7 +14,7 @@ type BookingService struct {
 	ScheduleRepo    domain.ScheduleRepository
 	DestinationRepo domain.DestinationRepository
 	LaunchpadRepo   domain.LaunchpadRepository
-	LaunchClient    *spacex.LaunchClient
+	LaunchClient    domain.LaunchClient
 }
 
 func NewBookingService(
@@ -23,13 +22,14 @@ func NewBookingService(
 	scheduleRepo domain.ScheduleRepository,
 	destinationRepo domain.DestinationRepository,
 	launchpadRepo domain.LaunchpadRepository,
-	launchClient *spacex.LaunchClient) *BookingService {
+	launchClient domain.LaunchClient) *BookingService {
 	return &BookingService{
 		BookingRepo:     bookingRepo,
 		ScheduleRepo:    scheduleRepo,
 		DestinationRepo: destinationRepo,
 		LaunchpadRepo:   launchpadRepo,
-		LaunchClient:    launchClient}
+		LaunchClient:    launchClient,
+	}
 }
 
 func (s *BookingService) GetBookings() ([]*domain.Booking, error) {
@@ -37,63 +37,89 @@ func (s *BookingService) GetBookings() ([]*domain.Booking, error) {
 }
 
 func (s *BookingService) CreateBooking(booking *domain.Booking) error {
-	// Validate destination ID
-	_, err := s.DestinationRepo.GetByID(booking.DestinationID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return fmt.Errorf("booking creation failed: %w", err)
-		}
-		return fmt.Errorf("booking creation failed: %w", domain.ErrInternal)
+	if err := s.validateDestination(booking.DestinationID); err != nil {
+		return err
 	}
 
-	// Validate launchpad ID
-	_, err = s.LaunchpadRepo.GetByID(booking.LaunchpadID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return fmt.Errorf("booking creation failed: %w", err)
-		}
-		return fmt.Errorf("booking creation failed: %w", domain.ErrInternal)
+	if err := s.validateLaunchpad(booking.LaunchpadID); err != nil {
+		return err
 	}
 
-	// Fetch schedule
-	_, err = s.ScheduleRepo.FetchSchedule(
+	if err := s.checkFlightSchedule(booking); err != nil {
+		return err
+	}
+
+	if err := s.checkLaunchConflicts(booking); err != nil {
+		return err
+	}
+
+	booking.ID = uuid.New().String()
+	return s.BookingRepo.Create(booking)
+}
+
+// validateDestination checks if the given destination ID is valid.
+func (s *BookingService) validateDestination(destinationID string) error {
+	_, err := s.DestinationRepo.GetByID(destinationID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return fmt.Errorf("invalid destination ID: %w", err)
+		}
+		return fmt.Errorf("failed to validate destination ID: %w", domain.ErrInternal)
+	}
+	return nil
+}
+
+// validateLaunchpad checks if the given launchpad ID is valid.
+func (s *BookingService) validateLaunchpad(launchpadID string) error {
+	_, err := s.LaunchpadRepo.GetByID(launchpadID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return fmt.Errorf("invalid launchpad ID: %w", err)
+		}
+		return fmt.Errorf("failed to validate launchpad ID: %w", domain.ErrInternal)
+	}
+	return nil
+}
+
+// checkFlightSchedule ensures that a flight is scheduled for the given booking details.
+func (s *BookingService) checkFlightSchedule(booking *domain.Booking) error {
+	_, err := s.ScheduleRepo.FetchSchedule(
 		booking.LaunchpadID,
 		int(booking.LaunchDate.Weekday()),
 		booking.DestinationID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return fmt.Errorf("booking creation failed: %w", err)
+			return fmt.Errorf("flight not scheduled for this date and destination: %w", err)
 		}
-		return fmt.Errorf("booking creation failed: %w", domain.ErrInternal)
+		return fmt.Errorf("failed to fetch schedule: %w", domain.ErrInternal)
 	}
+	return nil
+}
 
-	// Check for launch conflicts
+// checkLaunchConflicts checks if there is a launch conflict for the given booking date.
+func (s *BookingService) checkLaunchConflicts(booking *domain.Booking) error {
 	launches, err := s.LaunchClient.GetUpcomingLaunches()
 	if err != nil {
 		return fmt.Errorf("failed to fetch upcoming launches: %w", err)
 	}
 
-	launch := findMatchingLaunch(launches, *booking)
-	if launch != nil {
-		return fmt.Errorf("booking not possible: %w", domain.ErrConflict)
+	if findMatchingLaunch(launches, *booking) != nil {
+		return fmt.Errorf("booking conflict with an existing launch: %w", domain.ErrConflict)
 	}
-
-	// Create the booking
-	booking.ID = uuid.New().String()
-
-	return s.BookingRepo.Create(booking)
-}
-
-func findMatchingLaunch(launches []spacex.Launch, booking domain.Booking) *spacex.Launch {
-	for _, launch := range launches {
-		if launch.Launchpad == booking.LaunchpadID && isSameDay(booking.LaunchDate, launch.DateUTC) {
-			return &launch
-		}
-	}
-
 	return nil
 }
 
+// findMatchingLaunch checks for any launch matching the given booking details.
+func findMatchingLaunch(launches []domain.Launch, booking domain.Booking) *domain.Launch {
+	for _, launch := range launches {
+		if launch.LaunchpadId == booking.LaunchpadID && isSameDay(booking.LaunchDate, launch.Date) {
+			return &launch
+		}
+	}
+	return nil
+}
+
+// isSameDay checks if two times are on the same calendar day.
 func isSameDay(time1, time2 time.Time) bool {
 	year1, month1, day1 := time1.Date()
 	year2, month2, day2 := time2.Date()
