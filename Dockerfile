@@ -11,7 +11,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o booking_api cmd/booking_ap
 
 FROM alpine:latest
 
-# Set the working directory inside the container
 WORKDIR /app
 
 COPY --from=builder /app/booking_api .

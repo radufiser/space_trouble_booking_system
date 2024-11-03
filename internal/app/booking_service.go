@@ -75,7 +75,7 @@ func (s *BookingService) CreateBooking(booking *domain.Booking) error {
 
 	launch := findMatchingLaunch(launches, *booking)
 	if launch != nil {
-		return fmt.Errorf("booking not possible %w", domain.ErrConflict)
+		return fmt.Errorf("booking not possible: %w", domain.ErrConflict)
 	}
 
 	// Create the booking

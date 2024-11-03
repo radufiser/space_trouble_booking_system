@@ -26,7 +26,8 @@ func (repo ScheduleRepository) FetchSchedule(launchpadID string, dayOfWeek int, 
 		&schedule.LaunchpadID, &schedule.DayOfWeek, &schedule.DestinationID, &schedule.LastUpdated)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("launch from launchpad %s on day %d with destination %s %w", launchpadID, time.Weekday(dayOfWeek), destinationID, domain.ErrNotFound)
+			return nil, fmt.Errorf("launch from launchpad %s on %s with destination %s %w",
+				launchpadID, time.Weekday(dayOfWeek).String(), destinationID, domain.ErrNotFound)
 		}
 		return nil, fmt.Errorf("%w: %s", domain.ErrInternal, err)
 	}

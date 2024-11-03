@@ -20,12 +20,11 @@ func NewBookingHandler(service *app.BookingService) *BookingHandler {
 func (h *BookingHandler) GetBookings(w http.ResponseWriter, r *http.Request) {
 	bookings, err := h.Service.GetBookings()
 	if err != nil {
-		http.Error(w, "Failed to retrieve bookings", http.StatusInternalServerError)
+		writeJSONError(w, "Failed to retrieve bookings", http.StatusInternalServerError)
 		return
 	}
 
-	// Map domain.Booking to BookingResponse
-	var response []BookingResponse
+	response := []BookingResponse{}
 	for _, booking := range bookings {
 		response = append(response, NewBookingResponse(booking))
 	}
@@ -37,14 +36,13 @@ func (h *BookingHandler) GetBookings(w http.ResponseWriter, r *http.Request) {
 func (h *BookingHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	var bookingReq BookingRequest
 
-	// Decode and validate
 	if err := json.NewDecoder(r.Body).Decode(&bookingReq); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		writeJSONError(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
 	if err := bookingReq.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -64,18 +62,18 @@ func (h *BookingHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	err := h.Service.CreateBooking(booking)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeJSONError(w, err.Error(), http.StatusNotFound)
 			return
 		}
 		if errors.Is(err, domain.ErrConflict) {
-			http.Error(w, err.Error(), http.StatusConflict)
+			writeJSONError(w, err.Error(), http.StatusConflict)
 			return
 		}
 		if errors.Is(err, domain.ErrInvalidInput) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		writeJSONError(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
