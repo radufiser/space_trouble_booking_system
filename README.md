@@ -2,11 +2,11 @@
 
 ## Implementation details
 
-Destinations, launchpads, and the weekly launch schedule are defined in the db/init.sql script, which runs when the PostgreSQL Docker container starts.
+- Destinations, launchpads, and the weekly launch schedule are defined in the `db/init.sql` script, which runs when the PostgreSQL Docker container starts.
 
-BookingService.CreateBooking validates booking details by checking the existence of the destination and launchpad IDs and ensuring a flight is scheduled for the specified launch date. It also verifies that the booking does not conflict with any upcoming SpaceX launches. If all validations pass, a new booking is created with a unique UUID and saved to the repository.
+- `BookingService.CreateBooking` validates booking details by checking the existence of the destination and launchpad IDs and ensuring a flight is scheduled for the specified launch date. It also verifies that the booking does not conflict with any upcoming SpaceX launches. If all validations pass, a new booking is created with a unique UUID and saved to the repository.
 
-LaunchClient fetches and caches SpaceX upcoming launch data. It includes an HTTP client and an in-memory cache to reduce API calls and improve performance. The GetUpcomingLaunches method checks if cached data is valid; if not, it makes an HTTP request to fetch the data, decodes the JSON response, and updates the cache.
+- `LaunchClient` fetches and caches SpaceX upcoming launch data. It includes an HTTP client and an in-memory cache to reduce API calls and improve performance. The GetUpcomingLaunches method checks if cached data is valid; if not, it makes an HTTP request to fetch the data, decodes the JSON response, and updates the cache.
 
 ## Run locally
 
@@ -25,7 +25,7 @@ docker-compose down -v
 
 ### 201 Created test
 
-```json
+```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -41,7 +41,7 @@ curl --location 'localhost:8080/bookings' \
 
 ### 400 BadRequest samples
 #### Destination ID not found
-```json
+```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -62,7 +62,7 @@ Response:
 }
 ```
 #### Last name not provided
-```json
+```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -81,7 +81,7 @@ curl --location 'localhost:8080/bookings' \
 ```
 
 ### 409 Conflict with SpaceX
-```json
+```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
 --data '{
