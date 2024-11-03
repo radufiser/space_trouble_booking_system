@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"spacetrouble.com/booking/config"
@@ -33,9 +37,45 @@ func main() {
 	bookingService := app.NewBookingService(bookingRepo, scheduleRepo, destinationRepo, launchpadRepo, launchClient)
 	bookingHandler := api.NewBookingHandler(bookingService)
 
-	// Setup router and start the server
+	// Setup router
 	router := api.SetupRouter(bookingHandler)
 
-	log.Println("Server running on port", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, router))
+	// Create the server
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: router,
+	}
+
+	// Channel to listen for interrupt or terminate signals
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	// Channel to signal server shutdown is complete
+	shutdownComplete := make(chan struct{})
+
+	// Start server in a separate goroutine
+	go func() {
+		log.Println("Server running on port", cfg.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Wait for signal
+	<-signalChan
+	log.Println("Shutting down server...")
+
+	// Create a context with a timeout for the server shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Attempt graceful shutdown
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	close(shutdownComplete)
+	log.Println("Server gracefully stopped")
+
+	<-shutdownComplete
 }
