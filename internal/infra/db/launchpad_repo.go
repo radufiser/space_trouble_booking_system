@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -16,9 +17,9 @@ func NewLaunchpadRepository(db *sql.DB) *LaunchpadRepository {
 	return &LaunchpadRepository{DB: db}
 }
 
-func (repo *LaunchpadRepository) GetByID(id string) (*domain.Launchpad, error) {
+func (repo *LaunchpadRepository) GetByID(ctx context.Context, id string) (*domain.Launchpad, error) {
 	var launchpad domain.Launchpad
-	err := repo.DB.QueryRow(`
+	err := repo.DB.QueryRowContext(ctx, `
 		SELECT id, name, full_name, locality, region, status 
 		FROM launchpads 
 		WHERE id = $1`, id).

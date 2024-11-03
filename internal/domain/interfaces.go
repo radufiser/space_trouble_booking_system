@@ -1,24 +1,26 @@
 package domain
 
-//go:generate mockgen -source=internal/domain/interfaces.go -destination=internal/domain/mocks/mock_repository.go -package=mocks
+import "context"
+
+//go:generate mockgen -source=internal/domain/interfaces.go -destination=internal/domain/mocks/mock_interfaces.go -package=mocks
 type BookingRepository interface {
-	FindAll() ([]*Booking, error)
-	Create(booking *Booking) error
+	FindAll(ctx context.Context) ([]*Booking, error)
+	Create(ctx context.Context, booking *Booking) error
 }
 
 type DestinationRepository interface {
-	FetchAllDestinations() ([]Destination, error)
-	GetByID(id string) (*Destination, error)
+	FetchAllDestinations(ctx context.Context) ([]Destination, error)
+	GetByID(ctx context.Context, id string) (*Destination, error)
 }
 
 type LaunchpadRepository interface {
-	GetByID(id string) (*Launchpad, error)
+	GetByID(ctx context.Context, id string) (*Launchpad, error)
 }
 
 type ScheduleRepository interface {
-	FetchSchedule(launchpadID string, dayOfWeek int, destinationID string) (*WeeklySchedule, error)
+	FetchSchedule(ctx context.Context, launchpadID string, dayOfWeek int, destinationID string) (*WeeklySchedule, error)
 }
 
 type LaunchClient interface {
-	GetUpcomingLaunches() ([]Launch, error)
+	GetUpcomingLaunches(ctx context.Context) ([]Launch, error)
 }

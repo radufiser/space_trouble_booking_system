@@ -18,7 +18,7 @@ func NewBookingHandler(service *app.BookingService) *BookingHandler {
 }
 
 func (h *BookingHandler) GetBookings(w http.ResponseWriter, r *http.Request) {
-	bookings, err := h.Service.GetBookings()
+	bookings, err := h.Service.GetBookings(r.Context())
 	if err != nil {
 		writeJSONError(w, "Failed to retrieve bookings", http.StatusInternalServerError)
 		return
@@ -59,7 +59,7 @@ func (h *BookingHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		booking.Gender = bookingReq.Gender
 	}
 
-	err := h.Service.CreateBooking(booking)
+	err := h.Service.CreateBooking(r.Context(), booking)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			writeJSONError(w, err.Error(), http.StatusNotFound)

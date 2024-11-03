@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 
 	"spacetrouble.com/booking/internal/domain"
@@ -14,10 +15,10 @@ func NewBookingRepository(db *sql.DB) *BookingRepository {
 	return &BookingRepository{DB: db}
 }
 
-func (repo *BookingRepository) FindAll() ([]*domain.Booking, error) {
+func (repo *BookingRepository) FindAll(ctx context.Context) ([]*domain.Booking, error) {
 	query := `SELECT id, first_name, last_name, gender, birthday, launchpad_id, destination_id, launch_date FROM bookings`
 
-	rows, err := repo.DB.Query(query)
+	rows, err := repo.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -42,11 +43,11 @@ func (repo *BookingRepository) FindAll() ([]*domain.Booking, error) {
 	return bookings, nil
 }
 
-func (repo *BookingRepository) Create(booking *domain.Booking) error {
+func (repo *BookingRepository) Create(ctx context.Context, booking *domain.Booking) error {
 	query := `INSERT INTO bookings (id, first_name, last_name, gender, birthday, launchpad_id, destination_id, launch_date)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	_, err := repo.DB.Exec(query, booking.ID, booking.FirstName, booking.LastName, booking.Gender,
+	_, err := repo.DB.ExecContext(ctx, query, booking.ID, booking.FirstName, booking.LastName, booking.Gender,
 		booking.Birthday, booking.LaunchpadID, booking.DestinationID, booking.LaunchDate)
 
 	return err

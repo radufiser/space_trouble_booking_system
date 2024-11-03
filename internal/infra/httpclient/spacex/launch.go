@@ -1,6 +1,7 @@
 package httpclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -43,7 +44,7 @@ func NewLaunchClient(baseURL string, httpTTL time.Duration, cacheTTL time.Durati
 }
 
 // GetUpcomingLaunches fetches upcoming launches and extracts only the required fields
-func (c *LaunchClient) GetUpcomingLaunches() ([]domain.Launch, error) {
+func (c *LaunchClient) GetUpcomingLaunches(ctx context.Context) ([]domain.Launch, error) {
 	// Check if the result is in the cache and not expired
 	if c.cache.data != nil && time.Now().Before(c.cache.expiresAt) {
 		return c.cache.data, nil

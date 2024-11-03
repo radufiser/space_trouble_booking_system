@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -16,9 +17,9 @@ func NewScheduleRepository(db *sql.DB) *ScheduleRepository {
 	return &ScheduleRepository{DB: db}
 }
 
-func (repo ScheduleRepository) FetchSchedule(launchpadID string, dayOfWeek int, destinationID string) (*domain.WeeklySchedule, error) {
+func (repo ScheduleRepository) FetchSchedule(ctx context.Context, launchpadID string, dayOfWeek int, destinationID string) (*domain.WeeklySchedule, error) {
 	var schedule domain.WeeklySchedule
-	err := repo.DB.QueryRow(`
+	err := repo.DB.QueryRowContext(ctx, `
         SELECT launchpad_id, day_of_week, destination_id, last_updated
         FROM weekly_schedule
         WHERE launchpad_id = $1 AND day_of_week = $2 AND destination_id = $3

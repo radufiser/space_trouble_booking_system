@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -17,8 +18,8 @@ func NewDestinationRepository(db *sql.DB) *DestinationRepository {
 }
 
 // FetchDestinations retrieves the list of destinations from the database
-func (repo DestinationRepository) FetchAllDestinations() ([]domain.Destination, error) {
-	rows, err := repo.DB.Query("SELECT id, name FROM destinations")
+func (repo DestinationRepository) FetchAllDestinations(ctx context.Context) ([]domain.Destination, error) {
+	rows, err := repo.DB.QueryContext(ctx, "SELECT id, name FROM destinations")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query destinations: %w", err)
 	}
@@ -36,9 +37,9 @@ func (repo DestinationRepository) FetchAllDestinations() ([]domain.Destination, 
 	return destinations, nil
 }
 
-func (repo *DestinationRepository) GetByID(id string) (*domain.Destination, error) {
+func (repo *DestinationRepository) GetByID(ctx context.Context, id string) (*domain.Destination, error) {
 	var destination domain.Destination
-	err := repo.DB.QueryRow("SELECT id, name FROM destinations WHERE id = $1", id).
+	err := repo.DB.QueryRowContext(ctx, "SELECT id, name FROM destinations WHERE id = $1", id).
 		Scan(&destination.ID, &destination.Name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
