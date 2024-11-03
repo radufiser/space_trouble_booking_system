@@ -37,6 +37,10 @@ func (s *BookingService) GetBookings(ctx context.Context) ([]*domain.Booking, er
 	return s.BookingRepo.FindAll(ctx)
 }
 
+func (s *BookingService) DeleteBooking(ctx context.Context, id string) error {
+	return s.BookingRepo.Delete(ctx, id)
+}
+
 func (s *BookingService) CreateBooking(ctx context.Context, booking *domain.Booking) error {
 	if err := s.validateDestination(ctx, booking.DestinationID); err != nil {
 		return err

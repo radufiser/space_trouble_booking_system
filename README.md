@@ -23,7 +23,8 @@ docker-compose down -v
 
 ## Testing
 
-### 201 Created test
+### Create Booking
+#### 201 Created test
 
 ```bash
 curl --location 'localhost:8080/bookings' \
@@ -39,8 +40,8 @@ curl --location 'localhost:8080/bookings' \
 }'
 ```
 
-### 400 BadRequest samples
-#### Destination ID not found
+#### 400 BadRequest samples
+##### Destination ID not found
 ```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
@@ -61,7 +62,7 @@ Response:
     "message": "booking creation failed: not found: destination with ID 1443a911-b39c-4404-bdab-dcffe4a6c01"
 }
 ```
-#### Last name not provided
+##### Last name not provided
 ```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
@@ -80,7 +81,7 @@ curl --location 'localhost:8080/bookings' \
 }
 ```
 
-### 409 Conflict with SpaceX
+#### 409 Conflict with SpaceX
 ```bash
 curl --location 'localhost:8080/bookings' \
 --header 'Content-Type: application/json' \
@@ -98,4 +99,16 @@ curl --location 'localhost:8080/bookings' \
 {
     "message": "booking not possible: conflict"
 }
+```
+
+### Get All Bookings
+```sh
+curl --location 'localhost:8080/bookings' \
+--data ''
+```
+### Delete Booking
+
+```bash
+curl --location --request DELETE 'localhost:8080/bookings/4fcf7117-c40c-4812-b27e-dbd90841ebbf' \
+--data ''
 ```

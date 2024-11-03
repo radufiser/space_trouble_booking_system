@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"spacetrouble.com/booking/internal/app"
 	"spacetrouble.com/booking/internal/domain"
 )
@@ -80,4 +81,17 @@ func (h *BookingHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(booking)
+}
+
+func (h *BookingHandler) DeleteBooking(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	err := h.Service.DeleteBooking(r.Context(), id)
+	if err != nil {
+		writeJSONError(w, "Failed to delete booking", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"spacetrouble.com/booking/internal/domain"
 )
@@ -51,4 +52,20 @@ func (repo *BookingRepository) Create(ctx context.Context, booking *domain.Booki
 		booking.Birthday, booking.LaunchpadID, booking.DestinationID, booking.LaunchDate)
 
 	return err
+}
+
+func (repo *BookingRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM bookings WHERE id = $1`
+
+	result, err := repo.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete booking: %w", err)
+	}
+
+	_, err = result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not get rows affected: %w", err)
+	}
+
+	return nil
 }

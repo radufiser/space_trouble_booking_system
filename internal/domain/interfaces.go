@@ -6,6 +6,7 @@ import "context"
 type BookingRepository interface {
 	FindAll(ctx context.Context) ([]*Booking, error)
 	Create(ctx context.Context, booking *Booking) error
+	Delete(ctx context.Context, id string) error
 }
 
 type DestinationRepository interface {
